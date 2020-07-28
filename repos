@@ -1,0 +1,8 @@
+git merge upstream/master
+  510  git remote add upstream https://github.com/kaza514/simple-webapp.git
+  511  git fetch upstream
+  512  git rebase upstream/master
+  513  git status
+  514  git push origin master
+  515  git push origin master
+  516  history
