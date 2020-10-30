@@ -1,0 +1,74 @@
+---
+- name: "Deploying Python app"
+  hosts: docker
+  become: yes
+  tasks:
+    - name:  "Install Required Python Packges"
+      yum:
+        name: ['python', 'python-devel', 'python-pip']
+        state: present
+
+    - name: "Installing Mysql Community Rpm"
+      yum:
+        name: https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+        state: present
+
+    - name: "Install Mysql Server and client"
+      yum:
+        name: ['mysql-server','mysql-devel']
+        state: present
+
+    - name: "Starting mysql Service"
+      service:
+        name: mysqld
+        state: started
+        enabled: yes
+        
+        =========================================================================================================
+        - name: Install MySQL repository
+  yum:
+    name: "https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm"
+    state: present
+- name: Install MySQL packages
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - mysql-community-server
+      - mysql-community-client
+
+
+- name: Enable the MySQL service
+  service:
+    name: mysqld
+    state: started
+    enabled: true
+
+- name: Acquire temporary root password
+  shell: "awk -F': ' '$0 ~ \"temporary password\"{print $2}' /var/log/mysqld.log"
+  register: mysql_root_password_temp
+
+- name: Set new root password from default temporary password
+  shell: "mysql -e \"SET PASSWORD = '{{ passwd_mysql_root }}';\"
+         --connect-expired-password -uroot -p'{{ mysql_root_password_temp.stdout }}'
+         && touch /root/.my.password.changed"
+  args:
+    creates: /root/.my.password.changed
+
+- name: Ensure root can login into MySQL localhost
+  shell: "mysql -e \"CREATE USER 'root'@'{{ item }}';\" 
+         -uroot -p'{{ passwd_mysql_root }}'"
+  with_items:
+    - ::1
+    - 127.0.0.1
+    - localhost
+  ignore_errors: yes
+
+
+- name: Restart the MySQL service
+  service:
+    name: mysqld
+    state: restarted
+        
+        
